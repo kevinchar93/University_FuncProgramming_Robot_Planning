@@ -16,9 +16,47 @@
 
 
 ; all the special rooms in the building
-(def special-rooms [:mail-room :stairs :storage])
+(def special-rooms [:main-office :stairs :storage])
 
 
+; the parcles that each room has and its destination
+(def parcel-register {:r101 []
+                      :r103 []
+                      :r105 []
+                      :r107 []
+                      :r109 []
+                      :r111 []
+                      :r113 []
+                      :r115 []
+                      :r117 []
+                      :r119 []
+                      :r121 []
+                      :r123 []
+                      :r125 []
+                      :r127 []
+                      :r129 []
+                      :r131 []
+                      :a1 []
+                      :a2 []
+                      :a3 []
+                      :b1 []
+                      :b2 []
+                      :b3 []
+                      :b4 []
+                      :c1 []
+                      :c2 []
+                      :c3 []
+                      :d1 []
+                      :d2 []
+                      :d3 []
+                      :main-office []
+                      :storage []
+                      })
+
+
+
+
+; all of the connectios between rooms
 (def all-edges [[:r101 , :c101 , 2]
 								[:r103 , :c103 , 2]
 								[:r105 , :c105 , 2]
@@ -56,7 +94,7 @@
 								[:d1 , :d2 , 1]
 								[:d2 , :c127 , 2]
 								[:d2 , :d3 , 1]
-								[:mail-room , :mail , 3]
+								[:main-office , :mail , 3]
 								[:stairs , :ts , 5]
 								[:storage , :c118A , 3]
 								[:mail , :ts , 1]
