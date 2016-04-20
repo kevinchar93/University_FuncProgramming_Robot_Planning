@@ -244,36 +244,7 @@
 
 
 
-
-
-
-
 ;-------------------------------------------------------------------------------
 ;       WORKING AREA!
 
-
-                                      
-                                                           
-;(plan-path building :mail :c123)
-
-
-
-
-
-(def onePath [:c115])
-(def zeroPath [])
-(def path1 [:c131 :c129 :c127 :c125])
-(def path2 [:ts :a2 :a3 :a1 :b1])
-(def path3 [:c103 :b3 :b1 :c2 :c1 :c123])
-(def path4 [:c119 :c121 :c123])
-(def path5 [:c117 :c118B :c118A :c119 :c121 :c123])
-(def path6 [:c103 :b3 :b1 :c2 :c1 :c123 :c125])
-
-
-(def demopaths '([:c131 :c129 :c127 :c125]
-                 [:ts :a2 :a3 :a1 :b1]
-                 [:c103 :b3 :b1 :c2 :c1 :c123]
-                 [:c119 :c121 :c123]
-                 [:c117 :c118B :c118A :c119 :c121 :c123]
-                 [:c103 :b3 :b1 :c2 :c1 :c123 :c125]))
 
