@@ -1,5 +1,6 @@
-(ns fp-assignment2-robot-planning.core)
-(require '[fp-assignment2-robot-planning.data :as data])
+(ns fp-assignment2-robot-planning.core
+  (require [fp-assignment2-robot-planning.data :as data])
+  (require [clojure.data.priority-map :as pm]))
 
 
 
@@ -109,6 +110,11 @@
           cost-sum)))))                              ; 'next-vert' is nil, so we've reached last node in 'path', return the 'cost-sum'
 
 
+;-------------------------------------------------------------------------------
+(defn get-actions [graph node]
+  "Get all places that can be moved to in 'graph' from position of 'node'"
+  (vec (keys                   ; get the keys which are all positions connected to 'node'
+         (get graph node))))   ; get the map representing other nodes connected to 'node'
 
 ;-------------------------------------------------------------------------------
 ; define a record to represent a parcel
@@ -186,14 +192,57 @@
 
 
 
+
+
+(defn plan-path [graph begin goal]
+  "Attempt to find a route in 'graph' from 'begin' to 'goal' "
+  (loop [frontier (pm/priority-map [begin] 0 ); init frontier as 'begin' node with cost 0
+         explored #{}]                        ; set of expored nodes initially set to empty
+    ( if (= 0 (count frontier)) 
+      false                                   ; path not possible
+      
+      (let [path (first frontier)             ; get path with shortest weight
+           path-end (last path)               ; get node at the end of the path 
+           explored+ (conj explored           ; the explored set but with the new node 'path-end' added
+                           path-end)   
+           frontier- (dissoc frontier path)   ; the frontier with the current path removed from it
+           actions (get-actions graph         ; all the moves that can be made from the end of the current path
+                                path-end)
+           frontier* (expand-path frontier-   ; expand the end of the current path to create a new updated frontier
+                        explored+
+                        path
+                        path-end
+                        actions)]   
+        
+        (if (= path-end goal)                 ; check to see if we've reached the goal
+          path                                ; goal was reached - return this path
+          
+          (recur frontier*                    ; goal not reached recur with updated frontier & explored set
+                 explored+))))))
+
+
+
+(defn expand-path [frontier explored path node actions])
+
+
+(vec (keys (get building :c117)))
+
+
+
+
 (path-cost building zeroPath)
 (def emptySeq [])
 
 (conj emptySeq 9)
+(def lang- 2)
+(def p (priority-map :a 2 :b 1 :c 3 :d 5 :e 4 :f 3))
 
 (reduce conj emptySeq '(:r123 :r444 :r234))
 
 (last (reduce conj emptySeq '(:r123 :r444 :r234)))
 
+(def p (pm/priority-map [:a123] 0 [:b123] 0))
 
+(first (assoc p [:a123] (count [:a134 :b133])))
+(first p)
 ;(clojure.pprint/pprint global-parcel-register)
