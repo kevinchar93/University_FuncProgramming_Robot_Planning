@@ -62,7 +62,7 @@
 
 
 ;-------------------------------------------------------------------------------
-(defn add-parcel-to-register [p-register parcel]
+(defn add-parcel-to-register [p-register parcel]             ; designed to be used with reduce function
   "Add the record 'parcel', to list of parcels 'p-register'"
   (let [{:keys [origin-room                                  ; destructure the parcel record to get contents
                 dest-room
@@ -91,6 +91,26 @@
 
 
 ;-------------------------------------------------------------------------------
+(defn path-cost [graph path]
+  "Get the total cost of list of nodes 'path' from start to finish in 'graph' "
+  (if (> 2 (count path))
+    0                                                ; 'path' length is zero, as it contains 1 or less nodes
+    (loop [idx 0
+           cost-sum 0]
+      (let [curr-vert (get path idx)                 ; get the current node's key
+            next-vert (get path (inc idx))           ; get the next node's key
+            weight (get-in graph 
+                           [curr-vert next-vert])]   ; drill into the map 'graph' to get 'weight' between 'curr-vert' & 'next-vert'
+        
+        (if next-vert                                ; check if 'next-vert' is nil & 'weight' was valid
+          (recur (inc idx)                           ; increment 'idx' to move to next node
+                 (+ cost-sum weight))                ; 'cost-sum' is current sum plus distance to next node
+          
+          cost-sum)))))                              ; 'next-vert' is nil, so we've reached last node in 'path', return the 'cost-sum'
+
+
+
+;-------------------------------------------------------------------------------
 ; define a record to represent a parcel
 (defrecord Parcel [origin-room            ; the room the parcel is originally in
                    dest-room              ; the destination the parcel is going to
@@ -107,22 +127,26 @@
                   parcels])             ; the parcels the robot is carrying
 
 
+
 ;-------------------------------------------------------------------------------
-; create the building from all the verticis listed in 'data' namespace
+; create the 'building' from all the verticis listed in 'data' namespace
 (def building (reduce alist-add-vertex {}
-                      (into [] (concat data/corridor data/outer-rooms data/inner-rooms data/special-rooms))))
+                      (into [] (concat data/corridor 
+                                       data/outer-rooms 
+                                       data/inner-rooms 
+                                       data/special-rooms))))
 
 
 
 ;-------------------------------------------------------------------------------
-; define an empty map of parcels for the global register of parcels
-(def global-parcel-register {})
+; add all the edges to the to the 'building' graph
+(def building (alist-add-all-edges building data/all-edges))
 
 
 
-(def demo-par (Parcel. :c222 :r123 :basket true))
-
+;-------------------------------------------------------------------------------
 ; define where all parcels currently are and where ther are to be delivered
+;                        |origin|dest|content|delivered|
 (def all-parcels [(Parcel. :r123 :r124 "dog" false)
                   (Parcel. :r125 :r126 "fish" false)
                   (Parcel. :r125 :r126 "fish" false)
@@ -131,9 +155,45 @@
                   (Parcel. :r131 :r132 "horse" true)])
 
 
-; information about the simulated robot
+;-------------------------------------------------------------------------------
+; add all of the parcel infromation to the global-parcel-register
+(def global-parcel-register (add-all-parcels-to-register {} all-parcels))
+
+
+
+;-------------------------------------------------------------------------------
+; init information about the simulated robot
 (def robot {:pos nil :target-pos nil :max-parcels nil :parcels []})
 
 
 
-(clojure.pprint/pprint (alist-add-all-edges building data/all-edges))
+
+
+
+
+
+
+
+
+;-------------------------------------------------------------------------------
+;       WORKING AREA!
+
+(def onePath [:c115])
+(def zeroPath [])
+(def path1 [:c131 :c129 :c127 :c125])
+(def path2 [:ts :a2 :a3 :a1 :b1])
+(def path3 [:c103 :b3 :b1 :c2 :c1 :c123])
+
+
+
+(path-cost building zeroPath)
+(def emptySeq [])
+
+(conj emptySeq 9)
+
+(reduce conj emptySeq '(:r123 :r444 :r234))
+
+(last (reduce conj emptySeq '(:r123 :r444 :r234)))
+
+
+;(clojure.pprint/pprint global-parcel-register)
