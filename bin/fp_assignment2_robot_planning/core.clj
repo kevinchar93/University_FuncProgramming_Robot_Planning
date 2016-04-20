@@ -1,9 +1,10 @@
 (ns fp-assignment2-robot-planning.core
   (require [fp-assignment2-robot-planning.data :as data])
-  (require [clojure.data.priority-map :as pm]))
+  (require [clojure.data.priority-map :as pm])
+  (require [clojure.pprint :as pp]))
 
 
-
+(def clojure.pprint/pprint pp)
 ;-------------------------------------------------------------------------------
 (defn alist-add-vertex [adj-list vertex-name]
   "Add vertex 'vertex-name' with no edges to adjacency list 'adj-list' "
@@ -116,6 +117,22 @@
   (vec (keys                   ; get the keys which are all positions connected to 'node'
          (get graph node))))   ; get the map representing other nodes connected to 'node'
 
+
+
+;-------------------------------------------------------------------------------
+(defn contains! [coll key]
+  ""
+  (not (contains? coll key)))
+
+
+
+;-------------------------------------------------------------------------------
+(defn contains!-seq [coll key]
+  ""
+  (not (some #(= key %) coll)))
+
+
+
 ;-------------------------------------------------------------------------------
 ; define a record to represent a parcel
 (defrecord Parcel [origin-room            ; the room the parcel is originally in
@@ -184,14 +201,34 @@
 ;-------------------------------------------------------------------------------
 ;       WORKING AREA!
 
-(def onePath [:c115])
-(def zeroPath [])
-(def path1 [:c131 :c129 :c127 :c125])
-(def path2 [:ts :a2 :a3 :a1 :b1])
-(def path3 [:c103 :b3 :b1 :c2 :c1 :c123])
 
 
 
+
+
+(defn replace-w-shorter [frontier path graph]
+  "Replace equivalent paths in the frontier that are longer than 'path'"
+  (let [cost (path-cost graph path)                        ; get the cost of the given path
+        equivs (for [c frontier                            ; get all paths in 'frontier' that end on same node as 'path' (equivalents)
+                    :when (= (last path) (last c))]
+                c)
+        longer-paths (for [c equivs                        ; get all paths that cost more than 'path' from 'equivs'
+                           :when (<= cost (path-cost c))]
+                       c)
+        frontier- (dissoc frontier longer-paths)]          ; generate what the frontier would be with longer paths removed
+    
+    (if (empty? longer-paths)                              ; check if there are any equivalent paths that are longer
+      frontier                                             ; if not the frontier is unchanged
+      (assoc frontier- path cost))))                       ; if so return the modified 'frontier-' with the new path replacing
+                                                           ; all the longer paths
+
+                                                           
+                                                           
+                                                           
+                                                           
+                                                           
+                                                           
+(plan-path building :mail :r125)
 
 
 (defn plan-path [graph begin goal]
@@ -201,18 +238,19 @@
     ( if (= 0 (count frontier)) 
       false                                   ; path not possible
       
-      (let [path (first frontier)             ; get path with shortest weight
-           path-end (last path)               ; get node at the end of the path 
+      (let [[path _]     (first frontier)     ; get path with shortest weight
+           path-end  (last path)              ; get node at the end of the path 
            explored+ (conj explored           ; the explored set but with the new node 'path-end' added
                            path-end)   
            frontier- (dissoc frontier path)   ; the frontier with the current path removed from it
-           actions (get-actions graph         ; all the moves that can be made from the end of the current path
-                                path-end)
+           actions   (get-actions graph       ; all the moves that can be made from the end of the current path
+                                  path-end)
            frontier* (expand-path frontier-   ; expand the end of the current path to create a new updated frontier
                         explored+
                         path
                         path-end
-                        actions)]   
+                        actions
+                        graph)]   
         
         (if (= path-end goal)                 ; check to see if we've reached the goal
           path                                ; goal was reached - return this path
@@ -222,27 +260,91 @@
 
 
 
-(defn expand-path [frontier explored path node actions])
+(def pmap (pm/priority-map :a 2 :b 1 :c 3 :d 5 :e 4 :f 3))
+(first (keys pmap))
+(let [[[path] _ ] (first frontier)]
+  path)
+(def begin :c131)
+(def frontier (pm/priority-map [begin] 0 ))
+(def path (first))
+(def frontier- (pm/priority-map [begin] 0 ))
+
+(expand-path )
 
 
-(vec (keys (get building :c117)))
+(defn expand-path [frontier explored path node actions graph]
+  (loop [new-frontier frontier
+         idx 0]
+    
+    (let [next-pos (get actions idx)            ; get a next positon from the action list
+          path+ (conj path next-pos)            ; generate new path that would be created if 'next-pos' was added to 'path'
+          p-cost (path-cost graph path+)         ; calculate the total cost of this new path
+          ends (for [c new-frontier]            ; get all the nodes on the end of the paths in the frontier
+                 (last c))
+          frontier+ (assoc new-frontier         ; generate frontier that would be created if path+ was added to frontier
+                           path+
+                           p-cost)
+          idx+ (inc idx)]                       ; the next index value
+      (if next-pos                              ; check if nil, if so we've added all the expanded paths
+        
+        (if (and (contains! explored next-pos)  ; if the 'next-pos' is not in the explored set 
+                 (contains!-seq ends next-pos)) ; and not in the ends of the frontier
+          (recur frontier+ idx+)                ; recur with the new frontier and the incremented index
+          
+          (recur (replace-w-shorter frontier    ; otherwise check to see if the new path can replace equivalent
+                                    path+       ; onger paths
+                                    graph)
+                 idx+))
+        
+        new-frontier))))                        ; return the newly update frontier
 
 
 
 
-(path-cost building zeroPath)
-(def emptySeq [])
+(defn expand-path [frontier explored path node actions graph]
+  (loop [new-frontier frontier
+         idx 0]
+    
+    (let [next-pos (get actions idx)            ; get a next positon from the action list
+          path+ (conj path next-pos)            ; generate new path that would be created if 'next-pos' was added to 'path'
+          p-cost (path-cost graph path+)         ; calculate the total cost of this new path
+          ends (for [c new-frontier]            ; get all the nodes on the end of the paths in the frontier
+                 (last c))
+          frontier+ (assoc new-frontier         ; generate frontier that would be created if path+ was added to frontier
+                           path+
+                           p-cost)
+          idx+ (inc idx)]                       ; the next index value
+      (if next-pos                              ; check if nil, if so we've added all the expanded paths
+        
+        (if (and (contains! explored next-pos)  ; if the 'next-pos' is not in the explored set 
+                 (contains!-seq ends next-pos)) ; and not in the ends of the frontier
+          (recur frontier+ idx+)                ; recur with the new frontier and the incremented index
+          
+          (recur new-frontier idx+))            ; recure with unchaged frontier and incremented index
+        
+        new-frontier))))                        ; return the newly update frontier
 
-(conj emptySeq 9)
-(def lang- 2)
-(def p (priority-map :a 2 :b 1 :c 3 :d 5 :e 4 :f 3))
 
-(reduce conj emptySeq '(:r123 :r444 :r234))
 
-(last (reduce conj emptySeq '(:r123 :r444 :r234)))
 
-(def p (pm/priority-map [:a123] 0 [:b123] 0))
 
-(first (assoc p [:a123] (count [:a134 :b133])))
-(first p)
-;(clojure.pprint/pprint global-parcel-register)
+
+(def onePath [:c115])
+(def zeroPath [])
+(def path1 [:c131 :c129 :c127 :c125])
+(def path2 [:ts :a2 :a3 :a1 :b1])
+(def path3 [:c103 :b3 :b1 :c2 :c1 :c123])
+(def path4 [:c119 :c121 :c123])
+(def path5 [:c117 :c118B :c118A :c119 :c121 :c123])
+(def path6 [:c103 :b3 :b1 :c2 :c1 :c123 :c125])
+
+
+(def demopaths '([:c131 :c129 :c127 :c125]
+                 [:ts :a2 :a3 :a1 :b1]
+                 [:c103 :b3 :b1 :c2 :c1 :c123]
+                 [:c119 :c121 :c123]
+                 [:c117 :c118B :c118A :c119 :c121 :c123]
+                 [:c103 :b3 :b1 :c2 :c1 :c123 :c125]))
+
+
+(clojure.pprint/pprint mappedvals)
