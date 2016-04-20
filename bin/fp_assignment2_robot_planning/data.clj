@@ -19,6 +19,12 @@
 (def special-rooms [:main-office :stairs :storage])
 
 
+; all the rooms in one list
+(def all-rooms (concat corridor 
+                       outer-rooms 
+                       inner-rooms
+                       special-rooms))
+
 ; the parcles that each room has and its destination
 (def parcel-register {:r101 []
                       :r103 []

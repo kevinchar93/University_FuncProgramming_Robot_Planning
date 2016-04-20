@@ -3,8 +3,6 @@
   (require [clojure.data.priority-map :as pm])
   (require [clojure.pprint :as pp]))
 
-
-(def clojure.pprint/pprint pp)
 ;-------------------------------------------------------------------------------
 (defn alist-add-vertex [adj-list vertex-name]
   "Add vertex 'vertex-name' with no edges to adjacency list 'adj-list' "
@@ -121,15 +119,72 @@
 
 ;-------------------------------------------------------------------------------
 (defn contains! [coll key]
-  ""
+  "Check if a map does not contain the key"
   (not (contains? coll key)))
 
 
 
 ;-------------------------------------------------------------------------------
 (defn contains!-seq [coll key]
-  ""
+  "Check if the sequence contains at least one of the key"
   (not (some #(= key %) coll)))
+
+
+
+;-------------------------------------------------------------------------------
+(defn expand-path [frontier explored path node actions graph]
+  "Take the given 'path' and expand it using connected nodes in 'graph', return frontier with new paths from expansion"
+  (loop [new-frontier frontier
+         idx 0]
+    
+    (let [next-pos (get actions idx)            ; get a next positon from the action list
+          path+ (conj path next-pos)            ; generate new path that would be created if 'next-pos' was added to 'path'
+          p-cost (path-cost graph path+)         ; calculate the total cost of this new path
+          ends (for [c new-frontier]            ; get all the nodes on the end of the paths in the frontier
+                 (last c))
+          frontier+ (assoc new-frontier         ; generate frontier that would be created if path+ was added to frontier
+                           path+
+                           p-cost)
+          idx+ (inc idx)]                       ; the next index value
+      (if next-pos                              ; check if nil, if so we've added all the expanded paths
+        
+        (if (and (contains! explored next-pos)  ; if the 'next-pos' is not in the explored set 
+                 (contains!-seq ends next-pos)) ; and not in the ends of the frontier
+          (recur frontier+ idx+)                ; recur with the new frontier and the incremented index
+          
+          (recur new-frontier idx+))            ; recure with unchaged frontier and incremented index
+        
+        new-frontier))))                        ; return the newly update frontier
+
+
+
+;-------------------------------------------------------------------------------
+(defn plan-path [graph begin goal]
+  "Attempt to find a route in 'graph' from 'begin' to 'goal' "
+  (loop [frontier (pm/priority-map [begin] 0 ); init frontier as 'begin' node with cost 0
+         explored #{}]                        ; set of expored nodes initially set to empty
+    ( if (= 0 (count frontier)) 
+      false                                   ; path not possible
+      
+      (let [[path _] (first frontier)         ; get path with shortest weight
+           path-end  (last path)              ; get node at the end of the path 
+           explored+ (conj explored           ; the explored set but with the new node 'path-end' added
+                           path-end)   
+           frontier- (dissoc frontier path)   ; the frontier with the current path removed from it
+           actions   (get-actions graph       ; all the moves that can be made from the end of the current path
+                                  path-end)
+           frontier* (expand-path frontier-   ; expand the end of the current path to create a new updated frontier
+                        explored+
+                        path
+                        path-end
+                        actions
+                        graph)]   
+        
+        (if (= path-end goal)                 ; check to see if we've reached the goal
+          path                                ; goal was reached - return this path
+          
+          (recur frontier*                    ; goal not reached recur with updated frontier & explored set
+                 explored+))))))
 
 
 
@@ -154,12 +209,7 @@
 ;-------------------------------------------------------------------------------
 ; create the 'building' from all the verticis listed in 'data' namespace
 (def building (reduce alist-add-vertex {}
-                      (into [] (concat data/corridor 
-                                       data/outer-rooms 
-                                       data/inner-rooms 
-                                       data/special-rooms))))
-
-
+                      (into [] data/all-rooms)))
 
 ;-------------------------------------------------------------------------------
 ; add all the edges to the to the 'building' graph
@@ -202,128 +252,9 @@
 ;       WORKING AREA!
 
 
-
-
-
-
-(defn replace-w-shorter [frontier path graph]
-  "Replace equivalent paths in the frontier that are longer than 'path'"
-  (let [cost (path-cost graph path)                        ; get the cost of the given path
-        equivs (for [c frontier                            ; get all paths in 'frontier' that end on same node as 'path' (equivalents)
-                    :when (= (last path) (last c))]
-                c)
-        longer-paths (for [c equivs                        ; get all paths that cost more than 'path' from 'equivs'
-                           :when (<= cost (path-cost c))]
-                       c)
-        frontier- (dissoc frontier longer-paths)]          ; generate what the frontier would be with longer paths removed
-    
-    (if (empty? longer-paths)                              ; check if there are any equivalent paths that are longer
-      frontier                                             ; if not the frontier is unchanged
-      (assoc frontier- path cost))))                       ; if so return the modified 'frontier-' with the new path replacing
-                                                           ; all the longer paths
-
+                                      
                                                            
-                                                           
-                                                           
-                                                           
-                                                           
-                                                           
-(plan-path building :mail :r125)
-
-
-(defn plan-path [graph begin goal]
-  "Attempt to find a route in 'graph' from 'begin' to 'goal' "
-  (loop [frontier (pm/priority-map [begin] 0 ); init frontier as 'begin' node with cost 0
-         explored #{}]                        ; set of expored nodes initially set to empty
-    ( if (= 0 (count frontier)) 
-      false                                   ; path not possible
-      
-      (let [[path _]     (first frontier)     ; get path with shortest weight
-           path-end  (last path)              ; get node at the end of the path 
-           explored+ (conj explored           ; the explored set but with the new node 'path-end' added
-                           path-end)   
-           frontier- (dissoc frontier path)   ; the frontier with the current path removed from it
-           actions   (get-actions graph       ; all the moves that can be made from the end of the current path
-                                  path-end)
-           frontier* (expand-path frontier-   ; expand the end of the current path to create a new updated frontier
-                        explored+
-                        path
-                        path-end
-                        actions
-                        graph)]   
-        
-        (if (= path-end goal)                 ; check to see if we've reached the goal
-          path                                ; goal was reached - return this path
-          
-          (recur frontier*                    ; goal not reached recur with updated frontier & explored set
-                 explored+))))))
-
-
-
-(def pmap (pm/priority-map :a 2 :b 1 :c 3 :d 5 :e 4 :f 3))
-(first (keys pmap))
-(let [[[path] _ ] (first frontier)]
-  path)
-(def begin :c131)
-(def frontier (pm/priority-map [begin] 0 ))
-(def path (first))
-(def frontier- (pm/priority-map [begin] 0 ))
-
-(expand-path )
-
-
-(defn expand-path [frontier explored path node actions graph]
-  (loop [new-frontier frontier
-         idx 0]
-    
-    (let [next-pos (get actions idx)            ; get a next positon from the action list
-          path+ (conj path next-pos)            ; generate new path that would be created if 'next-pos' was added to 'path'
-          p-cost (path-cost graph path+)         ; calculate the total cost of this new path
-          ends (for [c new-frontier]            ; get all the nodes on the end of the paths in the frontier
-                 (last c))
-          frontier+ (assoc new-frontier         ; generate frontier that would be created if path+ was added to frontier
-                           path+
-                           p-cost)
-          idx+ (inc idx)]                       ; the next index value
-      (if next-pos                              ; check if nil, if so we've added all the expanded paths
-        
-        (if (and (contains! explored next-pos)  ; if the 'next-pos' is not in the explored set 
-                 (contains!-seq ends next-pos)) ; and not in the ends of the frontier
-          (recur frontier+ idx+)                ; recur with the new frontier and the incremented index
-          
-          (recur (replace-w-shorter frontier    ; otherwise check to see if the new path can replace equivalent
-                                    path+       ; onger paths
-                                    graph)
-                 idx+))
-        
-        new-frontier))))                        ; return the newly update frontier
-
-
-
-
-(defn expand-path [frontier explored path node actions graph]
-  (loop [new-frontier frontier
-         idx 0]
-    
-    (let [next-pos (get actions idx)            ; get a next positon from the action list
-          path+ (conj path next-pos)            ; generate new path that would be created if 'next-pos' was added to 'path'
-          p-cost (path-cost graph path+)         ; calculate the total cost of this new path
-          ends (for [c new-frontier]            ; get all the nodes on the end of the paths in the frontier
-                 (last c))
-          frontier+ (assoc new-frontier         ; generate frontier that would be created if path+ was added to frontier
-                           path+
-                           p-cost)
-          idx+ (inc idx)]                       ; the next index value
-      (if next-pos                              ; check if nil, if so we've added all the expanded paths
-        
-        (if (and (contains! explored next-pos)  ; if the 'next-pos' is not in the explored set 
-                 (contains!-seq ends next-pos)) ; and not in the ends of the frontier
-          (recur frontier+ idx+)                ; recur with the new frontier and the incremented index
-          
-          (recur new-frontier idx+))            ; recure with unchaged frontier and incremented index
-        
-        new-frontier))))                        ; return the newly update frontier
-
+;(plan-path building :mail :c123)
 
 
 
@@ -346,5 +277,3 @@
                  [:c117 :c118B :c118A :c119 :c121 :c123]
                  [:c103 :b3 :b1 :c2 :c1 :c123 :c125]))
 
-
-(clojure.pprint/pprint mappedvals)
