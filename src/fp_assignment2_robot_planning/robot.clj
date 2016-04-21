@@ -84,13 +84,17 @@
     weight-map2))
 
 
-(pn (plan-route ROBOT))
+(pn (plan-collection-path ROBOT))
+
+
+
 ;-------------------------------------------------------------------------------
 (defn plan-collection-path [robot]
   (loop [pos (:curr-pos robot)                         ; init as current position of the robot (on recur will be end of total-path)
          parcels (parcels-by-deliv false               ; init the parcels list to have all undelivered parcels
                                   (:parcel-map robot))
          total-path (conj [] (:curr-pos robot))        ; init the total-path's first node, which the robot's current positon
+         coll-points {}                                ; map stores the rooms parcels are to be collected from, init to empty
          to-deliver nil]                               ; to-deliver list of parcels begins empty
     
     (if parcels                                         ; keep looping over list of parcels until exhausted 
@@ -101,6 +105,14 @@
                                          graph) 
            [curr-parcel _ ] (first par-weight-map)      ; get the parcel closest to the current position (pos)
            loc (:origin-room curr-parcel)               ; get the pick-up location for the current parcel
+           
+           count (get coll-points loc)                  ; get the ammount of parcels that are to be collected at loc
+           coll-points* (if count                       ; incremet the ammout of parcels to collect at loc
+                          (assoc coll-points
+                                 loc
+                                 (inc count))
+                          (assoc coll-points loc 1))
+           
            plan (plan-path graph pos loc)               ; plan a path from the current position in the plan to loc
            r-plan (subvec plan 1)                       ; getting the plan minus the first node in it
           
@@ -116,27 +128,42 @@
            to-deliver* (conj to-deliver curr-parcel)]   ; add the current parcel to the 'to-deliver' list
        
         (recur pos*                                     ; recur and rebind new arguments for position, parcel list...
-               parcels*                                 ; the total generated path
+               parcels*                                 ; the total generated path and the to deliver list
                total-path*
+               coll-points*
                to-deliver*))
-      pos)))
+      coll-points)))
 
+(def exPath (plan-collection-path ROBOT))
+(def exParcelList (plan-collection-path ROBOT))
 
+(pn exPath)
+(pn exParcelList)
+(pn (plan-delivery-path exParcelList exPath building))
 ;-------------------------------------------------------------------------------
 (defn plan-delivery-path [to-deliver partial-path graph]
   (loop [pos (last partial-path)                        ; position begins from where other partial path ended
          parcels to-deliver                             ; parcel list that is iterated over is list of parcels to deliver...
                                                         ; created in a previos stage
+         deliv-points {}                                ; map stores the rooms parcels are to be delivered to, init to empty
          total-path partial-path]                       ; the total-path is initialised from the partial path, nodes are..
                                                         ; added to this
     
     (if parcels                                         ; keep looping over list of parcels until exhausted 
-      (let [par-weight-map (weigh-parcels :dest-room  ; map the parcels to the cost to deliver them, use as a "to deliver" list
+      (let [par-weight-map (weigh-parcels :dest-room    ; map the parcels to the cost to deliver them, use as a "to deliver" list
                                           pos        
                                           parcels
                                           graph) 
            [curr-parcel _ ] (first par-weight-map)      ; get the parcel closest to the current position (pos)
            dest (:dest-room curr-parcel)                ; get the destination for the current parcel
+           
+           count (get deliv-points dest)                ; get the ammount of parcels that are to be delivered at dest
+           deliv-points* (if count                      ; incremet the ammout of parcels to collect at dest
+                           (assoc deliv-points
+                                  dest
+                                  (inc count))
+                           (assoc deliv-points dest 1))
+           
            plan (plan-path graph pos dest)              ; plan a path from the current position in the plan to dest
            r-plan (subvec plan 1)                       ; getting the plan minus the first node in it
           
@@ -152,50 +179,13 @@
            ] 
        
         (recur pos*                                     ; recur and rebind new arguments for position, parcel list...
-               parcels*                                 ; the total generated path
-               total-path*
-               to-deliver*))
-      pos)))
+               parcels*                                 ; and the total generated path
+               deliv-points*
+               total-path*))
+      total-path)))
 
 
-(defn wip [init-pos parcel-map deliveries pre-path graph mode]
-  (loop [pos init-pos                        ; init as current position of the robot (on recur will be end of total-path)
-         parcels (if (= mode :origin-room)
-                   (parcels-by-deliv false               ; init the parcels list to have all undelivered parcels
-                                   parcel-map)
-                   deliveries)
-         
-         total-path (if (empty? pre-path)
-                      (conj [] init-pos)
-                      pre-path)        ; init the total-path's first node, which the robot's current positon
-         to-deliver nil]                               ; to-deliver list of parcels begins empty
-    
-    (if parcels 
-      (let [par-weight-map (weigh-parcels mode   ; map the parcels to the cost to collect them, use as a "to collect" list
-                                          pos        
-                                          parcels
-                                          graph) 
-           [curr-parcel _ ] (first par-weight-map)      ; get the parcel closest to the current position (pos)
-           target (mode curr-parcel)                ; get the destination for the current parcel
-           plan (plan-path graph pos target)              ; plan a path from the current position in the plan to dest
-           r-plan (subvec plan 1)                       ; getting the plan minus the first node in it
-          
-           total-path* (if (not (empty? r-plan))        ; append r-plan to the total-path if there is nothing in r-plan...
-                         (apply conj                    ; then the total-path remains unchanged
-                               total-path 
-                               r-plan)
-                         total-path)
-           pos* (last total-path*)                      ; update the current position to be at the end of the generated path
-           par-weight-map* (dissoc par-weight-map       ; get the new parcel map with the current parcel removed from it
-                                   curr-parcel)
-           parcels* (keys par-weight-map*)              ; get the new list of parcels from par-weight-map*
-           to-deliver* (conj to-deliver curr-parcel)]   ; add the current parcel   
-       
-        (recur pos*                                     ; recur and rebind new arguments for position, parcel list...
-               parcels*                                 ; the total generated path
-               total-path*
-               to-deliver*))
-      pos)))
+
 
 
 (def exZ (plan-route ROBOT))
