@@ -99,22 +99,28 @@
           [curr-parcel _ ] (first par-weight-map)      ; get the parcel closest to the end of the total-path (pos)
           dest (:dest-room curr-parcel)                ; get the destination for the current parcel
           plan (plan-path graph pos dest)              ; plan a path from the current position in the plan to dest
-          r-plan (subvec plan 1)                       ; geting the plan minus the first 
+          r-plan (subvec plan 1)                       ; geting the plan minus the first node in it
           
-          total-path+ (apply conj 
+          total-path* (if (not (empty? r-plan))        ; append r-plan to the total-path if there is nothing in r-plan...
+                        (apply conj                    ; then the total-path remains unchanged
                               total-path 
-                              (rest plan))]              
-      total-path)))
+                              r-plan)
+                        total-path)
+          pos* (last total-path*)                      ; update the current position to be at the end of the generated path
+          par-weight-map* (dissoc par-weight-map       ; get the new parcel map with the current parcel removed from it
+                                  curr-parcel)
+          parcels* (keys par-weight-map*)]             ; get the new list of parcels from par-weight-map-
+      parcels*)))
 
-(def longvec [:a :b :c :d])
-(def shortvec [:x])
 
-(subvec shortvec 1)
+(defn plan-deliv-path [])
+
+
 
 (def exA (plan-path building :a2 :d2))
 (def exB (plan-path building :ts :c107))
 
-(def exC (apply conj [:r125] (rest [:r125 '()])))
+(def exC (apply conj [:r125] []))
 (def exD (apply conj exC exB))
 (pn exC)
 (pn exD)
@@ -135,7 +141,7 @@
 
 ;-------------------------------------------------------------------------------
 ; define the initial position of the robot
-(def initial-pos :r125 )
+(def initial-pos :d3 )
 
 
 
