@@ -61,9 +61,9 @@
 
 
 ;-------------------------------------------------------------------------------
-(defn cost-to-pdest [pos parcel graph]
+(defn cost-to-parcel [flag pos parcel graph]
   "Calculate the cost of travelling from 'pos' to destination of 'parcel'"
-  (let [dest (:dest-room parcel)          ; get the destination of the parcel
+  (let [dest (flag parcel)          ; get the destination of the parcel
         path (plan-path graph pos dest)   ; plan a path from 'pos' to the parcels destination
         dist (path-cost graph path)]      ; get the cost of the path
     dist))
@@ -71,15 +71,16 @@
 
 
 ;-------------------------------------------------------------------------------
-(defn weigh-parcels [pos parcels graph]
+(defn weigh-parcels [flag pos parcels graph]
   "Map the parcels to thier distance from 'pos'"
-  (let [weight-map1 (for [p parcels                      ; create first stage of the weight map, putting parcels into...
-                          :let [dist (cost-to-pdest pos  ; seqs with the cost of a path from 'pos' to 'p'
-                                                    p 
-                                                    graph)]]
+  (let [weight-map1 (for [p parcels                       ; create first stage of the weight map, putting parcels into...
+                          :let [dist (cost-to-parcel flag ; seqs with the cost of a path from 'pos' to 'p'
+                                                     pos
+                                                     p 
+                                                     graph)]]
                       [p dist])
-        weight-map2 (apply pm/priority-map               ; take the first stage of the weight map and put it into a...
-                           (flatten weight-map1))]       ; priority map that sorts based on vals
+        weight-map2 (apply pm/priority-map                ; take the first stage of the weight map and put it into a...
+                           (flatten weight-map1))]        ; priority map that sorts based on vals
     weight-map2))
 
 
@@ -93,13 +94,14 @@
          to-deliver nil]                               ; to-deliver list of parcels begins empty
     
     (let [graph (:graph robot)                         ; get the graph in the robot that represents the map of the building
-          par-weight-map (weigh-parcels pos            ; map the parcels to the cost to collect them, use as a "to collect" list
-                                         parcels
-                                         graph) 
-          [curr-parcel _ ] (first par-weight-map)      ; get the parcel closest to the end of the total-path (pos)
+          par-weight-map (weigh-parcels :origin-room   ; map the parcels to the cost to collect them, use as a "to collect" list
+                                        pos        
+                                        parcels
+                                        graph) 
+          [curr-parcel _ ] (first par-weight-map)      ; get the parcel closest to the current position (pos)
           dest (:dest-room curr-parcel)                ; get the destination for the current parcel
           plan (plan-path graph pos dest)              ; plan a path from the current position in the plan to dest
-          r-plan (subvec plan 1)                       ; geting the plan minus the first node in it
+          r-plan (subvec plan 1)                       ; getting the plan minus the first node in it
           
           total-path* (if (not (empty? r-plan))        ; append r-plan to the total-path if there is nothing in r-plan...
                         (apply conj                    ; then the total-path remains unchanged
@@ -109,7 +111,7 @@
           pos* (last total-path*)                      ; update the current position to be at the end of the generated path
           par-weight-map* (dissoc par-weight-map       ; get the new parcel map with the current parcel removed from it
                                   curr-parcel)
-          parcels* (keys par-weight-map*)]             ; get the new list of parcels from par-weight-map-
+          parcels* (keys par-weight-map*)]             ; get the new list of parcels from par-weight-map*
       parcels*)))
 
 
