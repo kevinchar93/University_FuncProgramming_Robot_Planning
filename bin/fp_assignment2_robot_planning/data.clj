@@ -1,67 +1,42 @@
 (ns fp-assignment2-robot-planning.data)
 
+;-------------------------------------------------------------------------------
 ; all the corridor nodes in the building 
 (def corridor [:mail :ts :c101 :c103 :c105 :c107 :c109 :c111 :c113 :c115
                :c117 :c118B :c118A :c119 :c121 :c123 :c125 :c127 :c129 
                :c131])
 
 
+
+;-------------------------------------------------------------------------------
 ; all outer rooms in the building
 (def outer-rooms [:r101 :r103 :r105 :r107 :r109 :r111 :r113 :r115
                   :r117 :r119 :r121 :r123 :r125 :r127 :r129 :r131])
 
 
+
+;-------------------------------------------------------------------------------
 ; all inner of the building rooms
 (def inner-rooms [:a1 :a2 :a3 :b1 :b2 :b3 :b4 :c1 :c2 :c3 :d1 :d2 :d3])
 
 
+
+;-------------------------------------------------------------------------------
 ; all the special rooms in the building
 (def special-rooms [:main-office :stairs :storage])
 
 
+
+;-------------------------------------------------------------------------------
 ; all the rooms in one list
 (def all-rooms (concat corridor 
                        outer-rooms 
                        inner-rooms
                        special-rooms))
 
-; the parcles that each room has and its destination
-(def parcel-register {:r101 []
-                      :r103 []
-                      :r105 []
-                      :r107 []
-                      :r109 []
-                      :r111 []
-                      :r113 []
-                      :r115 []
-                      :r117 []
-                      :r119 []
-                      :r121 []
-                      :r123 []
-                      :r125 []
-                      :r127 []
-                      :r129 []
-                      :r131 []
-                      :a1 []
-                      :a2 []
-                      :a3 []
-                      :b1 []
-                      :b2 []
-                      :b3 []
-                      :b4 []
-                      :c1 []
-                      :c2 []
-                      :c3 []
-                      :d1 []
-                      :d2 []
-                      :d3 []
-                      :main-office []
-                      :storage []
-                      })
 
 
-
-
+;-------------------------------------------------------------------------------
 ; all of the connectios between rooms
 (def all-edges [[:r101 , :c101 , 2]
 								[:r103 , :c103 , 2]

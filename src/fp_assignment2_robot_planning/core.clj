@@ -46,7 +46,7 @@
 
 
 ;-------------------------------------------------------------------------------
-(defn get-parcels-by-delivered [state parcel-map]
+(defn parcels-by-deliv [state parcel-map]
   "Retrieve parcels in 'parcel-list' whose :delivered key matches state "
   (let [parcel-map-vals (flatten (vec parcel-map))]
     (for [val parcel-map-vals
@@ -82,7 +82,7 @@
 
 
 ;-------------------------------------------------------------------------------
-(defn add-all-parcels-to-register [p-register parcel-list]
+(defn add-parcels-to-reg [p-register parcel-list]
   "Add all the parcel record in 'parcel-list' to the map 'p-register' "
   (reduce add-parcel-to-register
           p-register
@@ -92,7 +92,7 @@
 
 ;-------------------------------------------------------------------------------
 (defn path-cost [graph path]
-  "Get the total cost of list of nodes 'path' from start to finish in 'graph' "
+  "Get the total cost of list of nodes in 'path', from start to finish in 'graph' "
   (if (> 2 (count path))
     0                                                ; 'path' length is zero, as it contains 1 or less nodes
     (loop [idx 0
@@ -134,6 +134,7 @@
 ;-------------------------------------------------------------------------------
 (defn expand-path [frontier explored path node actions graph]
   "Take the given 'path' and expand it using connected nodes in 'graph', return frontier with new paths from expansion"
+  
   (loop [new-frontier frontier
          idx 0]
     
@@ -159,7 +160,7 @@
 
 
 ;-------------------------------------------------------------------------------
-(defn plan-path [graph begin goal]
+(defn plan-path [graph begin goal]            ; An implementation of the uniform cost search algorithm
   "Attempt to find a route in 'graph' from 'begin' to 'goal' "
   (loop [frontier (pm/priority-map [begin] 0 ); init frontier as 'begin' node with cost 0
          explored #{}]                        ; set of expored nodes initially set to empty
@@ -189,27 +190,11 @@
 
 
 ;-------------------------------------------------------------------------------
-; define a record to represent a parcel
-(defrecord Parcel [origin-room            ; the room the parcel is originally in
-                   dest-room              ; the destination the parcel is going to
-                   content                ; the parcel's content
-                   delivered])            ; whether the parcel has been delevered or not
-
-
-
-;-------------------------------------------------------------------------------
-; define a record to represent a robot
-(defrecord Robot [positon               ; the current position of the robot
-                  target-pos            ; the position the robot wishes to move to
-                  max-parcels           ; the max ammout of parcels the robot can carry
-                  parcels])             ; the parcels the robot is carrying
-
-
-
-;-------------------------------------------------------------------------------
 ; create the 'building' from all the verticis listed in 'data' namespace
 (def building (reduce alist-add-vertex {}
                       (into [] data/all-rooms)))
+
+
 
 ;-------------------------------------------------------------------------------
 ; add all the edges to the to the 'building' graph
@@ -217,34 +202,6 @@
 
 
 
-;-------------------------------------------------------------------------------
-; define where all parcels currently are and where ther are to be delivered
-;                        |origin|dest|content|delivered|
-(def all-parcels [(Parcel. :r123 :r124 "dog" false)
-                  (Parcel. :r125 :r126 "fish" false)
-                  (Parcel. :r125 :r126 "fish" false)
-                  (Parcel. :r127 :r128 "cat" false)
-                  (Parcel. :r129 :r130 "hare" true)
-                  (Parcel. :r131 :r132 "horse" true)])
 
-
-;-------------------------------------------------------------------------------
-; add all of the parcel infromation to the global-parcel-register
-(def global-parcel-register (add-all-parcels-to-register {} all-parcels))
-
-
-
-;-------------------------------------------------------------------------------
-; init information about the simulated robot
-(def robot {:pos nil :target-pos nil :max-parcels nil :parcels []})
-
-
-
-
-
-
-
-;-------------------------------------------------------------------------------
-;       WORKING AREA!
 
 
