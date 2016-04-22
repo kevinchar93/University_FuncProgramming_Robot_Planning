@@ -27,16 +27,17 @@
 
 
 
-
+;-------------------------------------------------------------------------------
 (defn pn [arg]
+  "Shorter name for pretty print"
   (pp/pprint arg))
-
 
 
 
 ;-------------------------------------------------------------------------------
 (defn pickup-parcels [robot]
   "Picks up all parcels at the robot's current location, updates parcel list and parcel map accordingly"
+  
   (let [robot-pos (:curr-pos robot)                         ; get the robot's current positon
         parcel-map (:parcel-map robot)                      ; get the robot's parcel-map
         parcels-pos (robot-pos parcel-map)                  ; use robot-pos to get all the parcels in the map at that position
@@ -48,9 +49,11 @@
         parcel-map* (assoc parcel-map robot-pos remaining)  ; create a parcel map with collected parcels in 'undelivered' removed
         parcels (:parcels robot)                            ; get the robot's original parcel list
         
-        robot+ (assoc robot :parcels (apply conj            ; update the original 'robot' parcel list (parcels) with the list... 
-                                            parcels         ; of undelivered parcels in 'undelivered'
-                                            undelivered))   
+        robot+ (if (empty? undelivered)                     ; check to make sure we have undelivered parcels to add
+                 robot                                      ; robot remains unchanged
+                 (assoc robot :parcels (apply conj          ; update the original 'robot' parcel list (parcels) with the list... 
+                                             parcels        ; of undelivered parcels in 'undelivered'
+                                             undelivered)))   
         
         robot++ (assoc robot+ :parcel-map parcel-map*)]     ; update the modified 'robot+' parcel-map to change it to the...
                                                             ; updated version 'parcel-map*'
@@ -61,6 +64,8 @@
 
 ;-------------------------------------------------------------------------------
 (defn dropoff-parcels [robot]
+  "Drops off all parcels at the robot's current location, updates parcel list and parcel map accordingly"
+  
    (let [pos (:curr-pos robot)                            ; get the robot's current positon
          par-map (:parcel-map robot)                      ; get the robot's parcel-map
          parcels (:parcels robot)                         ; get the robot's list of parcels it is carrying
@@ -297,18 +302,48 @@
 
 
 
+
+;-------------------------------------------------------------------------------
+(defn do-delivery-run [origin-robot]
+  (let [origin-robot (plan-full-route origin-robot)] ; plan a path for the delivery run
+    
+    (print-robot-graph origin-robot)                 ; print the graph representing the floor map
+    
+    (loop [robot origin-robot]                       ; robot is initialised to 'origin-robot' gets the same path plan
+      (let [path (:curr-path robot)                  ; get the path plan from the robot
+            coll-map (:collections robot)            ; get the collections map from the robot
+            deliv-map (:deliveries robot)            ; get the deliveries map from the robot
+            pos (first path)                         ; the current positon of the robot is the first node in the path
+            path* (rest path)                        ; the new path is the previous path without the first node
+            
+            robot (assoc robot                       ; update the current positon of the robot
+                         :curr-pos
+                         pos)
+            
+            robot (if (contains? coll-map pos)       ; check if the robot's current positon is in the collections map if so...
+                    (pickup-parcels robot)           ; pick up any parcels at that location
+                    robot)
+            
+            robot (if (contains? deliv-map pos)      ; check if the robot's current position is in the delivery map if so...
+                    (dropoff-parcels robot)          ; drop off any parcels destined for that location
+                    robot)
+            
+            robot* (assoc robot                      ; update the current path of the robot
+                          :curr-path
+                          path*)]
+        
+        (print-key-robot-data robot)                 ; print the state of the robot before we updated the current path
+        
+        (if (empty? path*)                           ; when path* is empty the robot has reached the end of the path so...
+          "DONE"                                     ; signal done
+          (recur robot*))))))                        ; rebind with the modified robot record
+
+
+
 ;-------------------------------------------------------------------------------
 ; define where all parcels currently are and where ther are to be delivered
 ;                        |origin|dest|content|delivered|
-(def all-parcels [(Parcel. :r123 :r125 "dog" false)
-                  (Parcel. :r125 :r127 "fish" false)
-                  (Parcel. :r125 :r115 "lion" false)
-                  (Parcel. :r125 :r113 "zeebra" false)
-                  (Parcel. :r131 :r111 "horse" true)
-                  (Parcel. :r131 :r101 "cat" true)
-                  (Parcel. :r125 :r103 "mouse" true)
-                  (Parcel. :r129 :r107 "cow" true)
-                  (Parcel. :r125 :r115 "sheep" false)])
+
 
 ; parcel lists for each task in the assignment brief
 (def task1 [(Parcel. :main-office :r131 "Book" false)])
@@ -336,21 +371,16 @@
             (Parcel. :main-office :r111 "USBs" false)
             (Parcel. :r121 :main-office "Folders" false)])
 
-(def curr-task all-parcels)
 
 
+;-------------------------------------------------------------------------------
+; define what the current task is
+(def curr-task task1)
 
-
-
-
-(print-robot-graph ROBOT)
-(print-key-robot-data ROBOT)
-
-(print-key-robot-data tempbot)
 
 ;-------------------------------------------------------------------------------
 ; define the initial position of the robot
-(def initial-pos :r125)
+(def initial-pos :c101)
 
 
 ;-------------------------------------------------------------------------------
@@ -364,3 +394,11 @@
                    {}))                                ; map for collections is initially empty
 
 
+
+
+;-------------------------------------------------------------------------------
+; Plan a delivery route fof the robot and print the state of the robot along the route
+(do-delivery-run ROBOT)
+
+; Plan a delivery route for the robot and print that route to the REPL
+(:curr-path (plan-full-route ROBOT))
