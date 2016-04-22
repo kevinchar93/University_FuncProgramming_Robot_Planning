@@ -1,5 +1,6 @@
 (ns fp-assignment2-robot-planning.robot
   (use [fp-assignment2-robot-planning.core])
+  (use [clojure.pprint])
   (require [clojure.pprint :as pp])
   (require [clojure.data.priority-map :as pm]))
 
@@ -58,10 +59,27 @@
 
 
 
-
 ;-------------------------------------------------------------------------------
-#_(defn dropoff-parcels [robot]
-    (let ))
+(defn dropoff-parcels [robot]
+   (let [pos (:curr-pos robot)                            ; get the robot's current positon
+         par-map (:parcel-map robot)                      ; get the robot's parcel-map
+         parcels (:parcels robot)                         ; get the robot's list of parcels it is carrying
+         
+         filtered (for [p parcels                         ; filter the parcel list to only get parcels who's destination...
+                        :when (= pos                      ; is the current position of the robot
+                                 (:dest-room p))]
+                    (assoc p                              ; modify the filtered list to set each parcel's delivered flag to true
+                            :delivered
+                            true))
+         remaining (for [p parcels                        ; get the remaining parcels by filtering and getting parcels ...
+                         :when (not (= pos                ; who's destination are not where the robot currently is
+                                       (:dest-room p)))]
+                     p)
+         par-map* (add-parcels-to-reg par-map             ; add newly delivered parcels to the parcel map
+                                      filtered)
+         robot (assoc robot :parcels remaining)           ; update robot's parcel list to the remaining parcels in 'remaining'
+         robot (assoc robot :parcel-map par-map*)]        ; update robot's parcel-map to newly update parcel map
+     robot))
 
 
 
@@ -234,6 +252,49 @@
 
 
 
+;-------------------------------------------------------------------------------
+(defn print-robot-graph [robot]
+  "Print out the graph that the robot uses as the floor plan"
+  (let [graph (:graph robot)]
+    (println "==================================================")
+    (println "Floor Plan")
+    (println "==================================================")
+    (pn graph)
+    (println "==================================================")))
+
+
+
+
+;-------------------------------------------------------------------------------
+(defn print-key-robot-data [robot]
+  "Print out all the smaller but important information about the robot"
+  (let [pos (:curr-pos robot)
+        parcels (:parcels robot)
+        par-map (:parcel-map robot)
+        path (:curr-path robot)
+        deliv (:deliveries robot)
+        coll (:collections robot)]
+    (println "==================================================")
+    (println "Key robot infromation")
+    (println "==================================================")
+    (println "Current position" pos)
+    (println "--- Parcels ------------------")
+    (print-table [:dest-room :origin-room :content :delivered] (sort-by :dest-room parcels))
+    (println)
+    (println "--- Parcel Map ---------------")
+    (pn par-map)
+    (println)
+    (println "--- Current Path -------------")
+    (pn path)
+    (println)
+    (println "--- Collections Path ---------")
+    (pn coll)
+    (println)
+    (println "--- Deliveries Map -----------")
+    (pn deliv)
+    (println)
+    (println "==================================================")))
+
 
 
 ;-------------------------------------------------------------------------------
@@ -246,16 +307,50 @@
                   (Parcel. :r131 :r111 "horse" true)
                   (Parcel. :r131 :r101 "cat" true)
                   (Parcel. :r125 :r103 "mouse" true)
-                  (Parcel. :r129 :r107 "cow" true)])
+                  (Parcel. :r129 :r107 "cow" true)
+                  (Parcel. :r125 :r115 "sheep" false)])
 
 ; parcel lists for each task in the assignment brief
-(def task1 [(Parcel. :)])
+(def task1 [(Parcel. :main-office :r131 "Book" false)])
+
+(def task2 [(Parcel. :main-office :r119 "Folder" false)])
+
+(def task3 [(Parcel. :r113 :r115 "Letter" false)])
+
+(def task4 [(Parcel. :r113 :r129 "Notepad" false)])
+
+(def task5 [(Parcel. :main-office :r131 "Staples" false)
+            (Parcel. :r131 :main-office "Pencils" false)])
+
+(def task6 [(Parcel. :main-office :r131 "Notepad" false)
+            (Parcel. :main-office :r111 "Book" false)])
+
+(def task6 [(Parcel. :main-office :r131 "Erasers" false)
+            (Parcel. :main-office :r111 "CDs" false)])
+
+(def task7 [(Parcel. :main-office :r131 "Plastic Wallets" false)
+            (Parcel. :main-office :r111 "CDs" false)
+            (Parcel. :r121 :main-office "Pens" false)])
+
+(def task8 [(Parcel. :main-office :r131 "Paper" false)
+            (Parcel. :main-office :r111 "USBs" false)
+            (Parcel. :r121 :main-office "Folders" false)])
+
+(def curr-task all-parcels)
 
 
+
+
+
+
+(print-robot-graph ROBOT)
+(print-key-robot-data ROBOT)
+
+(print-key-robot-data tempbot)
 
 ;-------------------------------------------------------------------------------
 ; define the initial position of the robot
-(def initial-pos :c101 )
+(def initial-pos :r125)
 
 
 ;-------------------------------------------------------------------------------
@@ -263,7 +358,7 @@
 (def ROBOT (Robot. building
                    initial-pos                         ; set initial position of robot, defined above
                    nil                                 ; parcels list starts out empty
-                   (add-parcels-to-reg {} all-parcels) ; add all the parcels in 'all-parcels' to the robot's parcel map
+                   (add-parcels-to-reg {} curr-task) ; add all the parcels in 'all-parcels' to the robot's parcel map
                    []                                  ; robot's path is initially empty
                    {}                                  ; map for deliveries is initially empty
                    {}))                                ; map for collections is initially empty
