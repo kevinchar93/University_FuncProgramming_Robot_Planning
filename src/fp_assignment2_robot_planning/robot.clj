@@ -20,7 +20,7 @@
                   curr-pos       ; the current position of the robot
                   parcels        ; the parcels the robot is carrying
                   parcel-map     ; the information about where parcels are in the building
-                  curr-path      ; the path the the robot is on currently
+                  curr-path      ; the path the the robot is currently on
                   deliveries     ; map containing which rooms parcels are to be delivered to and how many
                   collections    ; map containing which rooms parcels are to be collected from and how many
                   ]) 
@@ -30,13 +30,15 @@
 ;-------------------------------------------------------------------------------
 (defn pn [arg]
   "Shorter name for pretty print"
+  
   (pp/pprint arg))
 
 
 
 ;-------------------------------------------------------------------------------
 (defn pickup-parcels [robot]
-  "Picks up all parcels at the robot's current location, updates parcel list and parcel map accordingly"
+  "Picks up all parcels at the robot's current location, 
+   updates parcel list and parcel map accordingly"
   
   (let [robot-pos (:curr-pos robot)                         ; get the robot's current positon
         parcel-map (:parcel-map robot)                      ; get the robot's parcel-map
@@ -64,7 +66,8 @@
 
 ;-------------------------------------------------------------------------------
 (defn dropoff-parcels [robot]
-  "Drops off all parcels at the robot's current location, updates parcel list and parcel map accordingly"
+  "Drops off all parcels at the robot's current location, 
+   updates parcel list and parcel map accordingly"
   
    (let [pos (:curr-pos robot)                            ; get the robot's current positon
          par-map (:parcel-map robot)                      ; get the robot's parcel-map
@@ -73,13 +76,15 @@
          filtered (for [p parcels                         ; filter the parcel list to only get parcels who's destination...
                         :when (= pos                      ; is the current position of the robot
                                  (:dest-room p))]
-                    (assoc p                              ; modify the filtered list to set each parcel's delivered flag to true
+                    (assoc p                              ; modify the filtered parcel to set each parcel's delivered flag to true
                             :delivered
                             true))
+         
          remaining (for [p parcels                        ; get the remaining parcels by filtering and getting parcels ...
                          :when (not (= pos                ; who's destination are not where the robot currently is
                                        (:dest-room p)))]
                      p)
+         
          par-map* (add-parcels-to-reg par-map             ; add newly delivered parcels to the parcel map
                                       filtered)
          robot (assoc robot :parcels remaining)           ; update robot's parcel list to the remaining parcels in 'remaining'
@@ -90,7 +95,9 @@
 
 ;-------------------------------------------------------------------------------
 (defn cost-to-parcel [flag pos parcel graph]
-  "Calculate the cost of travelling from 'pos' to destination of 'parcel'"
+  "Calculate the cost of travelling from 'pos' to 
+   destination of 'parcel'"
+  
   (let [dest (flag parcel)                ; get the destination of the parcel
         path (plan-path graph pos dest)   ; plan a path from 'pos' to the parcels destination
         dist (path-cost graph path)]      ; get the cost of the path
@@ -102,14 +109,16 @@
 ;-------------------------------------------------------------------------------
 (defn weigh-parcels [flag pos parcels graph]
   "Map the parcels to thier distance from 'pos'"
+  
   (let [weight-map1 (for [p parcels                           ; create first stage of the weight map, putting parcels into...
                           :let [dist (cost-to-parcel flag     ; paired vectors with the cost of a path from 'pos' to 'p'
                                                      pos
                                                      p 
                                                      graph)]]
                       [p dist])
+        
         weight-map2 (apply pm/priority-map                    ; take the first stage of the weight map and put it into a...
-                           (flatten weight-map1))]            ; priority map that sorts based on vals
+                           (flatten weight-map1))]            ; priority map that sorts based on vals (cost of parcel weight)
     weight-map2))
 
 
@@ -118,8 +127,7 @@
 ;-------------------------------------------------------------------------------
 (defn plan-collection-path [init-pos parcel-map graph]
   "Plan a path the robot will follow to collect parcels.
- 
-   Returns [collection-path  collection-points-map  parcel-delivery-list]"
+   Returns vec [collection-path  collection-points-map  parcel-delivery-list]"
   
   (loop [pos init-pos                                   ; init as current position of the robot (on recur will be end of total-path)
          parcels (parcels-by-deliv false                ; init the parcels list to have all undelivered parcels
@@ -162,7 +170,6 @@
                total-path*
                coll-points*
                to-deliver*))
-      
       [total-path                                       ; return a vector containing the collection path, a map of the locations...
        coll-points                                      ; the parcels are to be collected from and the ammout to collect from...
        to-deliver])))                                   ; said location and the list of parcels to deliver
@@ -172,10 +179,9 @@
 
 ;-------------------------------------------------------------------------------
 (defn plan-delivery-path [to-deliver partial-path graph]
-  "Continue a planned collection path by taking a list of deliveries to be made 
-   and planning a path to make these deliveries.
-
-   Returns [full-collect-deliver-path  delivery-points]"
+  "Continue a planned collection path by taking a list of deliveries 
+   to be made and planning a path to make these deliveries.
+   Returns vec [full-collect-deliver-path  delivery-points]"
   
   (loop [pos (last partial-path)                        ; position begins from where other partial path ended
          
@@ -243,7 +249,7 @@
          ] (plan-collection-path r-pos                ; use details from the robot to plan a parcel collection path
                                  r-parcel-map
                                  r-graph)
-        [full-path                                    ; destructure result from 'plan-collection-path'
+        [full-path                                    ; destructure result from 'plan-delivery-path'
          deliv-points
          ] (plan-delivery-path to-deliver             ; use the collection path and the list of parcels in 'to-deliver'...
                                coll-path              ; to create a fully planned path the robot can use to coll/deliv
@@ -260,6 +266,7 @@
 ;-------------------------------------------------------------------------------
 (defn print-robot-graph [robot]
   "Print out the graph that the robot uses as the floor plan"
+  
   (let [graph (:graph robot)]
     (println "==================================================")
     (println "Floor Plan")
@@ -273,6 +280,7 @@
 ;-------------------------------------------------------------------------------
 (defn print-key-robot-data [robot]
   "Print out all the smaller but important information about the robot"
+  
   (let [pos (:curr-pos robot)
         parcels (:parcels robot)
         par-map (:parcel-map robot)
@@ -305,8 +313,12 @@
 
 ;-------------------------------------------------------------------------------
 (defn do-delivery-run [origin-robot]
+  "Plan a route that the robot will use to collect and deliver parcels
+   the have the robot go on this route and collect / deliver parcels printing
+   the state of the robot at each stage"
+  
   (let [origin-robot (plan-full-route origin-robot)] ; plan a path for the delivery run
-    
+
     (print-robot-graph origin-robot)                 ; print the graph representing the floor map
     
     (loop [robot origin-robot]                       ; robot is initialised to 'origin-robot' gets the same path plan
@@ -402,3 +414,5 @@
 
 ; Plan a delivery route for the robot and print that route to the REPL
 (:curr-path (plan-full-route ROBOT))
+(:collections (plan-full-route ROBOT))
+(:deliveries (plan-full-route ROBOT))

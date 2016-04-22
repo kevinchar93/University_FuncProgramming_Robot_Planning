@@ -5,7 +5,8 @@
 
 ;-------------------------------------------------------------------------------
 (defn alist-add-vertex [adj-list vertex-name]
-  "Add vertex 'vertex-name' with no edges to adjacency list 'adj-list' "
+  "Add vertex 'vertex-name' with no edges to adjacency list 'adj-list'"
+  
   (conj adj-list  [vertex-name {}]))
 
 
@@ -14,9 +15,8 @@
 (defn alist-add-edge [adj-list vert-a vert-b weight]
   "Add a weighted edge between two verticies in the adjacency list"
   
-  (if (and                                           ; check if the list has both veritcies to begin with
-        (contains? adj-list vert-a)
-        (contains? adj-list vert-b)) 
+  (if (and (contains? adj-list vert-a)               ; check if the list has both veritcies to begin with
+           (contains? adj-list vert-b)) 
     
     (assoc-in (assoc-in adj-list                     ; TRUE - associate verticies with one another, give each the same weight
                         [vert-a vert-b] 
@@ -29,7 +29,8 @@
 
 ;-------------------------------------------------------------------------------
 (defn alist-add-all-edges [adj-list edges]
-  "Add all of the edges in the given list 'edges' to 'adj-list' "
+  "Add all of the edges in the given list 'edges' to 'adj-list'"
+  
   (loop [graph adj-list
          edge-list edges
          curr-idx 0]
@@ -47,23 +48,19 @@
 
 ;-------------------------------------------------------------------------------
 (defn parcels-by-deliv [state parcel-map]
-  "Retrieve parcels in 'parcel-list' whose :delivered key matches state "
+  "Retrieve parcels in 'parcel-list' whose :delivered key matches state"
+  
   (let [parcel-map-vals (flatten (vec parcel-map))]
     (for [val parcel-map-vals
          :when (= state (:delivered val))]             ; get the 'delivered' val of each parcel and see if it matches 'state'
      val)))
-
-#_(defn get-parcels-by-delivered-deprecated [state parcel-list]
-   "Retrieve parcels in 'parcel-list' whose :delivered key matches state "
-   (for [val parcel-list
-         :when (= state (:delivered val))]             ; get the 'delivered' val of each parcel and see if it matches 'state'
-     val))
 
 
 
 ;-------------------------------------------------------------------------------
 (defn add-parcel-to-register [p-register parcel]             ; designed to be used with reduce function
   "Add the record 'parcel', to list of parcels 'p-register'"
+  
   (let [{:keys [origin-room                                  ; destructure the parcel record to get contents
                 dest-room
                 content
@@ -83,7 +80,8 @@
 
 ;-------------------------------------------------------------------------------
 (defn add-parcels-to-reg [p-register parcel-list]
-  "Add all the parcel record in 'parcel-list' to the map 'p-register' "
+  "Add all the parcel record in 'parcel-list' to the map 'p-register'"
+  
   (reduce add-parcel-to-register
           p-register
           parcel-list))
@@ -92,7 +90,8 @@
 
 ;-------------------------------------------------------------------------------
 (defn path-cost [graph path]
-  "Get the total cost of list of nodes in 'path', from start to finish in 'graph' "
+  "Get the total cost of list of nodes in 'path', from start to finish in 'graph'"
+  
   (if (> 2 (count path))
     0                                                ; 'path' length is zero, as it contains 1 or less nodes
     (loop [idx 0
@@ -112,6 +111,7 @@
 ;-------------------------------------------------------------------------------
 (defn get-actions [graph node]
   "Get all places that can be moved to in 'graph' from position of 'node'"
+  
   (vec (keys                   ; get the keys which are all positions connected to 'node'
          (get graph node))))   ; get the map representing other nodes connected to 'node'
 
@@ -120,6 +120,7 @@
 ;-------------------------------------------------------------------------------
 (defn contains! [coll key]
   "Check if a map does not contain the key"
+  
   (not (contains? coll key)))
 
 
@@ -127,20 +128,22 @@
 ;-------------------------------------------------------------------------------
 (defn contains!-seq [coll key]
   "Check if the sequence contains at least one of the key"
+  
   (not (some #(= key %) coll)))
 
 
 
 ;-------------------------------------------------------------------------------
 (defn expand-path [frontier explored path node actions graph]
-  "Take the given 'path' and expand it using connected nodes in 'graph', return frontier with new paths from expansion"
+  "Take the given 'path' and expand it using connected nodes in 'graph', 
+    return frontier with new paths added from expansion of the given path"
   
   (loop [new-frontier frontier
          idx 0]
     
     (let [next-pos (get actions idx)            ; get a next positon from the action list
           path+ (conj path next-pos)            ; generate new path that would be created if 'next-pos' was added to 'path'
-          p-cost (path-cost graph path+)         ; calculate the total cost of this new path
+          p-cost (path-cost graph path+)        ; calculate the total cost of this new path
           ends (for [c new-frontier]            ; get all the nodes on the end of the paths in the frontier
                  (last c))
           frontier+ (assoc new-frontier         ; generate frontier that would be created if path+ was added to frontier
@@ -160,8 +163,10 @@
 
 
 ;-------------------------------------------------------------------------------
-(defn plan-path [graph begin goal]            ; An implementation of the uniform cost search algorithm
-  "Attempt to find a route in 'graph' from 'begin' to 'goal' "
+(defn plan-path [graph begin goal]
+  "Attempt to find a route in 'graph' from 'begin' to 'goal'
+   using an implementation of the uniform cost search algorithm"
+  
   (loop [frontier (pm/priority-map [begin] 0 ); init frontier as 'begin' node with cost 0
          explored #{}]                        ; set of expored nodes initially set to empty
     ( if (= 0 (count frontier)) 
